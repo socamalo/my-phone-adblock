@@ -1,0 +1,256 @@
+#!name = 我的手机去广告 v1.0.0
+#!desc = [v1.0.0] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
+#!author = socamalo
+#!homepage = https://github.com/socamalo/my-phone-adblock
+#!icon = https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Reject.png
+#!url = https://raw.githubusercontent.com/socamalo/my-phone-adblock/main/my-phone-adblock.sgmodule
+#!raw-url = https://raw.githubusercontent.com/socamalo/my-phone-adblock/main/my-phone-adblock.sgmodule
+#!category = 去广告
+#!date = 2026-10-16
+#!version = 1.0.0
+
+# 本模块怎么来的 / How this module was made
+# ---------------------------------------------------------------------------
+# 数据源：Shadowrocket 日志 2026-10-15/16，13,921 条记录 / 794 个域名 / 14.0 小时。没有整段照搬任何社区规则库——社区库是给所有人用的，
+# 因而也一定会拦住你手机上某个正在用的功能。这里只保留「抓包里真实出现过，且供应商身份明确是广告」的域名。
+#
+# 社区库只用作第二意见：ad-tier 的每个域名都同时满足「本机抓包见过」和「至少一家权威广告库收录」。
+#
+# 关于 never 档：日志里有 31 个域名同样被权威广告库收录，但拦了会坏手机——HTTPDNS、推送长连接、App 自研的 RPC 框架、滑块/人机验证、崩溃上报。
+# 它们故意不在这个模块里，列在源码的 never 档并由测试守死。
+#
+# 本模块只含第三方广告厂商域名。日志里的第一方埋点域名（各家 App 自己的 stat/log 域）刻意不收录：那些域名本身就等于一份"装了哪些 App"的清单，而这个仓库是公开的。
+
+[Rule]
+
+# ==========================================================================
+# A 档 · 纯广告网络 / 广告 SDK —— 默认生效
+# ==========================================================================
+# 第三方广告公司。这些公司的全部业务就是投放广告，所以 App 里不可能有别的功能依赖它们。
+
+# 字节跳动 穿山甲 (Pangle)
+# 本机 App 类别：某内容社区 App | 抓包命中 34 次 | 权威广告库：anti-AD
+# 穿山甲 SDK 主接口。抓包里 34 次，域名带 pangolin-sdk-toutiao 特征，不可能有别的用途。
+DOMAIN-SUFFIX, pangolin-sdk-toutiao.com, REJECT
+
+# 字节跳动 穿山甲 (Pangle)
+# 本机 App 类别：某内容社区 App | 抓包命中 24 次 | 权威广告库：anti-AD
+# 穿山甲备用域名（后缀多一个 1）。不单独列就会被主域名的后缀规则漏掉。
+DOMAIN-SUFFIX, pangolin-sdk-toutiao1.com, REJECT
+
+# 字节跳动 GroMore (聚合)
+# 抓包命中 8 次 | 权威广告库：anti-AD
+# 穿山甲的聚合变现平台，本身不产内容，只产广告。
+DOMAIN-SUFFIX, gromore.pangolin-sdk-toutiao.com, REJECT
+
+# 字节跳动 穿山甲静态资源
+# 抓包命中 3 次 | 权威广告库：anti-AD
+# pglstatp = Pangle static。纯广告素材 CDN，和音乐类 App 那种 iad* 素材域一个道理。
+DOMAIN-SUFFIX, pglstatp-toutiao.com, REJECT
+
+# 腾讯广点通 (GDT)
+# 本机 App 类别：某智能门锁 App | 抓包命中 6 次 | 权威广告库：anti-AD / StevenBlack
+# 广点通投放主域（c3/v3/mi 三个子域都有）。腾讯广告的核心投放接口。
+DOMAIN-SUFFIX, gdt.qq.com, REJECT
+
+# 腾讯广点通素材 CDN
+# 抓包命中 2 次 | 权威广告库：anti-AD / AdGuard-CN
+# qzs.gdtimg.com 是广点通图片素材域，只服务广告。
+DOMAIN-SUFFIX, gdtimg.com, REJECT
+
+# 腾讯广告 SDK 上报
+# 抓包命中 3 次 | 权威广告库：anti-AD / StevenBlack
+# e.qq.com 是腾讯广告的短域。只拦 sdk.e.qq.com 这个具体子域而不是整个 e.qq.com —— 后者太宽，可能扫到别的东西。
+DOMAIN-SUFFIX, sdk.e.qq.com, REJECT
+
+# 腾讯广告 SDK 上报 (QUIC)
+# 抓包命中 2 次 | 权威广告库：anti-AD / StevenBlack
+# 同上，QUIC 通道版本。走 UDP，所以日志里显示为 UDP Relay 而不是域名。
+DOMAIN-SUFFIX, sdkquic.e.qq.com, REJECT
+
+# Google DoubleClick / Ad Manager
+# 抓包命中 3 次 | 权威广告库：anti-AD / StevenBlack
+# googleads.g / pubads.g 都是它的子域。这是抓包中 某社交 App 会话里同步出现的广告投放域。
+DOMAIN-SUFFIX, doubleclick.net, REJECT
+
+# Google DoubleClick (中国镜像)
+# 本机 App 类别：某社交 App | 抓包命中 17 次 | 权威广告库：anti-AD
+# googleads.g.doubleclick-cn.net 13 次 + adx.g.doubleclick-cn.net 4 次。中国区镜像，出现在 X 的每一次会话里。
+DOMAIN-SUFFIX, doubleclick-cn.net, REJECT
+
+# Google AdSense / GMA SDK
+# 本机 App 类别：某社交 App | 抓包命中 6 次 | 权威广告库：anti-AD / StevenBlack
+# pagead2.googlesyndication.com。和 connectivitycheck.gstatic.com 同一时刻触发，是 GMA SDK 初始化的标志。
+DOMAIN-SUFFIX, googlesyndication.com, REJECT
+
+# Google AdSense (中国镜像)
+# 本机 App 类别：某社交 App | 抓包命中 6 次 | 权威广告库：anti-AD
+# pagead2 / tpc 子域。中国区走这个而不是 .com。
+DOMAIN-SUFFIX, googlesyndication-cn.com, REJECT
+
+# Google 广告素材 CDN
+# 抓包命中 2 次 | 权威广告库：anti-AD
+# lh3.googleadsserving.cn，Google 广告创意图站，和 googlevideo 的 gmasdk 素材同一批。
+DOMAIN-SUFFIX, googleadsserving.cn, REJECT
+
+# Google IMA 视频广告 SDK
+# 本机 App 类别：某社交 App | 抓包命中 2 次 | 权威广告库：anti-AD
+# Google Interactive Media Ads —— App 内视频贴片广告的播放器 SDK。
+# 注意别跟 crashlyticsreports-pa.googleapis.com 搞混，后者在 never 档。
+DOMAIN-SUFFIX, imasdk.googleapis.com, REJECT
+
+# FancyDSP
+# 抓包命中 6 次 | 权威广告库：anti-AD / AdGuard-CN
+# mpcfg / ad-open2 / applus 三个子域。DSP = 需求方平台，买量投广告的。
+DOMAIN-SUFFIX, fancydsp.com, REJECT
+
+# FancyDSP
+# 抓包命中 15 次 | 权威广告库：anti-AD / AdGuard-CN
+# t2 / sdkg / static / g / lftxali 五个子域，是这套 SDK 里请求最多的。
+DOMAIN-SUFFIX, fancyapi.com, REJECT
+
+# 广告网盟 (adwangmai)
+# 抓包命中 8 次 | 权威广告库：anti-AD
+# sdk.adx / sdk-cfg.adx 两个子域。adx = ad exchange，交易所本身就是广告位买卖。
+DOMAIN-SUFFIX, adwangmai.com, REJECT
+
+# hzzfcm 广告 SDK
+# 抓包命中 6 次 | 权威广告库：anti-AD
+# 只有 sdk.hzzfcm.com 一个子域，纯 SDK 端点。
+DOMAIN-SUFFIX, hzzfcm.com, REJECT
+
+# zhangyuyidong 广告 SDK
+# 抓包命中 8 次 | 权威广告库：anti-AD
+# sdk / sdklog / iosid 三个子域。个人域名挂广告 SDK，典型的小广告联盟。
+DOMAIN-SUFFIX, zhangyuyidong.cn, REJECT
+
+# 倍孜 (Beizi) 广告 SDK
+# 抓包命中 4 次 | 权威广告库：anti-AD / AdGuard-CN
+# sdk / api-htp 两个子域。有公开的 SDK 文档站 sdkdoc.beizi.biz，确认是广告 SDK。
+DOMAIN-SUFFIX, beizi.biz, REJECT
+
+# 1RTB
+# 本机 App 类别：某智能门锁 App | 抓包命中 7 次 | 权威广告库：anti-AD
+# rtb = real-time bidding，实时竞价广告。某智能门锁 App 的 UA 直接挂着它。
+DOMAIN-SUFFIX, 1rtb.net, REJECT
+
+# TopOn 广告聚合
+# 抓包命中 5 次 | 权威广告库：anti-AD
+# mores.toponad.com。TopOn 是聚合多家广告 SDK 的中介层。
+DOMAIN-SUFFIX, toponad.com, REJECT
+
+# AnyThink (TopOn 海外品牌)
+# 本机 App 类别：某智能门锁 App | 抓包命中 1 次 | 权威广告库：anti-AD
+# mores.anythinktech.com，与 toponad 同一家。
+DOMAIN-SUFFIX, anythinktech.com, REJECT
+
+# 66mobi 广告 SDK
+# 抓包命中 5 次 | 权威广告库：anti-AD
+# sdk-track / tstatic / tencent-ssp / static 四个子域。
+DOMAIN-SUFFIX, 66mobi.com, REJECT
+
+# Smadex DSP
+# 抓包命中 6 次 | 权威广告库：anti-AD / StevenBlack
+# creatives / statics / static-content-1 三个子域。海外 DSP，creatives 就是广告创意素材。
+DOMAIN-SUFFIX, smadex.com, REJECT
+
+# Moloco DSP
+# 抓包命中 4 次 | 权威广告库：anti-AD / StevenBlack
+# cdn-f.adsmoloco.com。Moloco 是 App 内广告的 DSP，cdn-f 是素材分发。
+DOMAIN-SUFFIX, adsmoloco.com, REJECT
+
+# puata 广告 SDK
+# 抓包命中 2 次 | 权威广告库：anti-AD / AdGuard-CN
+# yumao.puata.info —— "yumao"(羽毛) 这类随机前缀是广告 SDK 躲检测的常见手法。
+DOMAIN-SUFFIX, puata.info, REJECT
+
+# AdScope 广告平台
+# 抓包命中 1 次 | 权威广告库：anti-AD
+# resource-m-r.ad-scope.com.cn，resource 子域说明是素材分发。
+DOMAIN-SUFFIX, ad-scope.com.cn, REJECT
+
+# statisticslinks 广告策略埋点
+# 抓包命中 2 次 | 权威广告库：anti-AD
+# adx-strategy-api-cn / tk 两个子域。域名带 statistics，但子域是 adx-strategy，属于广告决策链路。
+DOMAIN-SUFFIX, statisticslinks.com, REJECT
+
+# 友盟广告
+# 抓包命中 1 次 | 权威广告库：anti-AD / StevenBlack
+# 只拦 ads.umeng.com 这个专门做广告的子域。友盟主域 umeng.com 的统计功能另算，且不在本模块里。
+DOMAIN-SUFFIX, ads.umeng.com, REJECT
+
+# hubcloud adx
+# 抓包命中 1 次 | 权威广告库：anti-AD / AdGuard-CN
+# v = video，adx = 广告交易所。刻意写成完整子域而不是 hubcloud.com.cn：同域下还有 api.htp / sdk / res1 / sdktmp 等在跑
+# ，DOMAIN-SUFFIX 打在根域上会连 App 核心 API 一起拦掉。
+DOMAIN-SUFFIX, v.adx.hubcloud.com.cn, REJECT
+
+# 某券商 App 自营广告
+# 本机 App 类别：某券商 App | 抓包命中 1381 次 | 权威广告库：anti-AD
+# 抓包里请求量第一的域名。按路径拦（只拦 /infoService/vN）会让 App 被 REJECT 后继续重试——这份抓包里重试了 1381 次。按整个域名拦，
+# 在 TCP 层就断开。
+DOMAIN-SUFFIX, emdcadvertise.eastmoney.com, REJECT
+
+# 中国联通自营广告
+# 抓包命中 3 次 | 权威广告库：anti-AD
+# 中国联通自营广告接口。域名直译就是 smart ad。
+DOMAIN-SUFFIX, smartad.10010.com, REJECT
+
+# 某音乐 App 广告素材 CDN
+# 本机 App 类别：某音乐 App | 抓包命中 3 次 | 权威广告库：anti-AD
+# 某音乐 App 广告素材 CDN。etease 专用去广告模块也会拦它；这里列一份是为了本模块单独装也能完整生效（两处都拦不会冲突）。
+DOMAIN-SUFFIX, iadmusicmat.music.126.net, REJECT
+
+# 某音乐 App 广告素材 CDN
+# 本机 App 类别：某音乐 App | 抓包命中 3 次 | 权威广告库：anti-AD
+# 同上，某音乐 App 广告素材 CDN。
+DOMAIN-SUFFIX, iadmat.nosdn.127.net, REJECT
+
+# ==========================================================================
+# B 档 · 证据稍弱（只有供应商身份，没有权威库背书）—— 默认注释掉
+# ==========================================================================
+# 域名形态和厂商身份都指向广告，但权威库没收录，所以证据少一票。想连它们一起拦，把下面每一行的行首 # 删掉即可。逐条注释里写了各自的证据强度。
+
+# 8ziben DSP
+# 本机 App 类别：某智能门锁 App | 抓包命中 34 次 | 权威广告库：无（仅靠供应商身份判定）
+# api-events / api-cfg / api-dsp / static-dsp 四个子域，全是 SDK 端点。某智能门锁 App 的 UA 直接对应。
+# 请求量比很多强证据域名还高，但没进任何权威库，所以放这一档。
+# DOMAIN-SUFFIX, 8ziben.com, REJECT
+
+# kuiniuca 广告 SDK
+# 抓包命中 14 次 | 权威广告库：无（仅靠供应商身份判定）
+# xyp-n / sdk1xyajs.data 两个子域。xyp-n 走 UDP（QUIC），sdk1xyajs 是典型压缩混淆的 SDK 路径。
+# DOMAIN-SUFFIX, kuiniuca.com, REJECT
+
+# Buluken 广告 SDK
+# 抓包命中 5 次 | 权威广告库：无（仅靠供应商身份判定）
+# bid / sl / sdkconf 三个子域。bid = 竞价，是广告 SDK 的强特征。
+# DOMAIN-SUFFIX, buluken.com, REJECT
+
+# CPC 广告计费
+# 抓包命中 2 次 | 权威广告库：无（仅靠供应商身份判定）
+# cpc-service-square.iggrowth.cn。CPC = cost per click，按点击计费，只有广告业务用这个词。
+# DOMAIN-SUFFIX, iggrowth.cn, REJECT
+
+# CPC 广告计费
+# 抓包命中 2 次 | 权威广告库：无（仅靠供应商身份判定）
+# 和 iggrowth.cn 同一套 CPC 计费后端。只写这一个子域：同域下还有 usr-api / service / logrcv / tracelog-debug 在跑，
+# 打根域会连它们一起拦掉。
+# DOMAIN-SUFFIX, cpc-service-square.yunxish.com, REJECT
+
+# askdiandian 广告 SDK
+# 本机 App 类别：某内容社区 App | 抓包命中 1 次 | 权威广告库：无（仅靠供应商身份判定）
+# 某内容社区 App App 的 UA 唯一一次访问。只出现 1 次，证据最薄的一条。
+# DOMAIN-SUFFIX, askdiandian.com, REJECT
+
+# Moloco DSP
+# 抓包命中 1 次 | 权威广告库：无（仅靠供应商身份判定）
+# eventfnt-asia.dsp-api.moloco.com。Moloco 在 ad 档已有 cdn-f.adsmoloco.com，这条是投放 API；
+# 分开列是因为 adsmoloco.com 和 moloco.com 是不同注册域。
+# DOMAIN-SUFFIX, dsp-api.moloco.com, REJECT
+
+# 萤石 adx
+# 抓包命中 1 次 | 权威广告库：无（仅靠供应商身份判定）
+# ys7.com 是萤石云。adx 子域是广告交易所，1 次。
+# DOMAIN-SUFFIX, adx.ys7.com, REJECT
+
