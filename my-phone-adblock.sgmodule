@@ -1,5 +1,5 @@
-#!name = 我的手机去广告 v1.0.0
-#!desc = [v1.0.0] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
+#!name = 我的手机去广告 v1.0.2
+#!desc = [v1.0.2] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
 #!author = socamalo
 #!homepage = https://github.com/socamalo/my-phone-adblock
 #!icon = https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Reject.png
@@ -7,7 +7,18 @@
 #!raw-url = https://raw.githubusercontent.com/socamalo/my-phone-adblock/main/my-phone-adblock.sgmodule
 #!category = 去广告
 #!date = 2026-10-16
-#!version = 1.0.0
+#!version = 1.0.2
+
+# ==========================================================================
+# 我的手机去广告 v1.0.2  ·  构建日期 2026-10-16
+# ==========================================================================
+# 层一 域名级（无需 HTTPS 解密） : 35 条生效 + 8 条可选（注释掉）
+# 层二 路径级（需要 HTTPS 解密） : 不含 —— 本文件不碰任何第一方 App 域名
+# 数据源                        : Shadowrocket 日志 2026-10-15/16，13,921 条记录 / 794 个域名 / 14.0 小时
+#
+# 调试提示：版本号同时写在 #!name 和这里。在 Shadowrocket 的模块列表里看到的
+# 名字就带版本；日志里命中的规则文本则是 DOMAIN-SUFFIX / 正则原文。
+# 改了 src/rules.js 一定要重新跑 `node tools/build.mjs`，否则手机上跑的还是上一版。
 
 # 本模块怎么来的 / How this module was made
 # ---------------------------------------------------------------------------
