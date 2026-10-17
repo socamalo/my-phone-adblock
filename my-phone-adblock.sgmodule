@@ -1,5 +1,5 @@
-#!name = 我的手机去广告 v1.0.5
-#!desc = [v1.0.5] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
+#!name = 我的手机去广告 v1.0.6
+#!desc = [v1.0.6] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
 #!author = socamalo
 #!homepage = https://github.com/socamalo/my-phone-adblock
 #!icon = https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Reject.png
@@ -7,14 +7,14 @@
 #!raw-url = https://raw.githubusercontent.com/socamalo/my-phone-adblock/main/my-phone-adblock.sgmodule
 #!category = 去广告
 #!date = 2026-10-17
-#!version = 1.0.5
+#!version = 1.0.6
 
 # ==========================================================================
-# 我的手机去广告 v1.0.5  ·  构建日期 2026-10-17
+# 我的手机去广告 v1.0.6  ·  构建日期 2026-10-17
 # ==========================================================================
-# 层一 域名级（无需 HTTPS 解密） : 41 条生效 + 9 条可选（注释掉）
+# 层一 域名级（无需 HTTPS 解密） : 43 条生效 + 8 条可选（注释掉）
 # 层二 路径级（需要 HTTPS 解密） : 0 条生效 —— 候选路径未证实，全部列在文末「未证实 · 默认关闭」
-# 数据源                        : Shadowrocket 日志 2026-10-15~17，57,814 条记录 / 794 个域名 / 19.6 小时
+# 数据源                        : Shadowrocket 日志 2026-10-15~17，共 58,646 条记录（57,814 + 点击复现 832）/ 794 个域名
 #
 # 调试提示：版本号同时写在 #!name 和这里。在 Shadowrocket 的模块列表里看到的
 # 名字就带版本；日志里命中的规则文本则是 DOMAIN-SUFFIX / 正则原文。
@@ -32,13 +32,17 @@
 #
 # 本模块的域名级规则只含第三方广告厂商域名。日志里的第一方埋点域名（各家 App 自己的 stat/log 域）刻意不收录：那些域名本身就等于一份"装了哪些 App"的清单，而这个仓库是公开的。
 #
-# v1.0.5 的判定标准：**只有绝对确定的才生效**。
-# 域名级新增 5 条，每一条都拿到了第一手证据（服务器自报身份 / 302 跳转 / DNS 链路 / 官方文档），
+# v1.0.6 的判定标准：**只有绝对确定的才生效**。
+# 域名级新增 7 条，每一条都拿到了第一手证据（服务器自报身份 / 302 跳转 / DNS 链路 / 官方文档 / 主动点击复现），
 # 证据写在规则上方。拿不到第一手证据的一律不生效 —— 包括：
-#   · adashx.m.taobao.com：证据够强但本机连不上，降 B 档；
 #   · 网易云 / 高德 / poplayer 的开屏路径：只能证明端点存在，无法证明"只服务广告"，全部列在文末「未证实 · 默认关闭」；
 #   · 京东开屏：社区做法是用 http-response 脚本剥离响应体，域名/路径规则解决不了。
 # 本模块仍然不需要 MITM，装上即用。
+#
+# v1.0.6 关键突破：主动点击某音乐 App 里的天猫双11 开屏广告，抓到点击链路
+#   → 秒针系统 yktd.m.cn.miaozhen.com（广告监测/归因，已补）
+#   → 阿里妈妈 tanx.com（早已在模块里）
+#   → adashx.m.taobao.com（广告心跳，本轮升 A 档）
 
 [Rule]
 
@@ -258,6 +262,24 @@ DOMAIN-SUFFIX, app-ads-services.com, REJECT
 # Google 自述其广告 Cookie 会从 googleadservices.com 等域下发；该域专用于 Google Ads 点击追踪。
 DOMAIN-SUFFIX, googleadservices.com, REJECT
 
+# 秒针系统（Miaozhen Systems）广告监测 / 点击归因
+# 第一手证据（2026-10-17 主动点击某音乐 App 里的天猫双11 开屏广告时抓到）：
+#   · yktd.m.cn.miaozhen.com 恰好在点击瞬间出现，DIRECT 未拦
+#   · DNS：yktd.m.cn.miaozhen.com → miaozhen.youku.com（CNAME 直接指向阿里系优酷域名）
+#   · 秒针系统是第三方广告技术公司，国内唯一获 MRC + TAG 双认证的第三方广告监测服务商
+#   · 阿里云官方文档：广告投放会生成「秒针曝光监测链接、秒针点击监测链接」
+# 同一次点击里 tanx.com（阿里妈妈）已被现有规则拦掉，只剩秒针这一路在跑。
+# 只拦 miaozhen.com 注册域；不动 youku.com 本身。
+DOMAIN-SUFFIX, miaozhen.com, REJECT
+
+# 淘宝广告统计 adashx（有线端）
+# 抓包命中：旧日志 13 次 + 新日志 7 次（全部 DIRECT）
+# 行为证据：主动点击天猫双11 广告后，它从 12:36:09 起每约 3 秒请求一次，一直持续到点击完成（12:36:40）。
+# 身份证据：同族的 h-adashx.ut.taobao.com 响应头自报 Server: aserver/2.0.0 Adashx/2.0.6.0914-MEM；
+#           DNS 链路 adashx.m.taobao.com → gds.alibabadns.com → kunlunhuf.com（阿里）。
+# 注意：同族的 amdc.m.taobao.com（投放调度）仍然不能拦 —— anti-AD issue #778 记录拦了会导致阿里系 App 异常。
+DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
+
 # ==========================================================================
 # B 档 · 证据稍弱（只有供应商身份，没有权威库背书）—— 默认注释掉
 # ==========================================================================
@@ -308,16 +330,6 @@ DOMAIN-SUFFIX, googleadservices.com, REJECT
 # 抓包命中 1 次 | 权威广告库：无（仅靠供应商身份判定）
 # ys7.com 是萤石云。adx 子域是广告交易所，1 次。
 # DOMAIN-SUFFIX, adx.ys7.com, REJECT
-
-# 淘宝广告统计 adashx —— 证据够强，但本机连不上，降到 B 档
-# 抓包命中 13 次（DIRECT 6 / PROXY 7）
-# 证据：DNS 链路 adashx.m.taobao.com → gds.alibabadns.com → kunlunhuf.com（阿里）；
-#       同族的 h-adashx.ut.taobao.com 响应头自报 Server: aserver/2.0.0 Adashx/2.0.6.0914-MEM；
-#       多个社区「淘宝去广告」模块以 DOMAIN 精确拦截本域。
-# 为什么没进 A 档：本机用真实 IP 直连仍被 TLS 重置，没能亲眼看到它的响应内容。
-# 差一票，按「只有绝对确定才生效」放 B 档。
-# 注意：同族的 amdc.m.taobao.com（投放调度）不能拦 —— anti-AD issue #778 记录，拦了会导致阿里系 App 异常。
-# DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
 
 # ==========================================================================
 # 未证实 · 默认关闭（研究记录，不生效）
