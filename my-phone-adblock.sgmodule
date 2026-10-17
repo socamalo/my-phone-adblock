@@ -1,5 +1,5 @@
-#!name = 我的手机去广告 v1.0.4
-#!desc = [v1.0.4] 根据本机 Shadowrocket 请求日志找出的广告域名。纯广告域按域名层 REJECT；第一方 App 上的开屏广告按路径 rewrite 拦截（仅高德 / 阿里弹层，需 MITM）。 / Ad domains found in this phone's own request log. Pure ad domains blocked at the domain layer; splash ads on first-party apps blocked by path rewrite (AMap / Alibaba pop-layer only, requires MITM).
+#!name = 我的手机去广告 v1.0.5
+#!desc = [v1.0.5] 根据本机 Shadowrocket 请求日志找出的广告域名，按域名层直接 REJECT。不需要 HTTPS 解密、不需要证书、不需要脚本。 / Ad domains found in this phone's own request log, blocked at the domain layer. No HTTPS decryption, no certificate, no script.
 #!author = socamalo
 #!homepage = https://github.com/socamalo/my-phone-adblock
 #!icon = https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Reject.png
@@ -7,14 +7,14 @@
 #!raw-url = https://raw.githubusercontent.com/socamalo/my-phone-adblock/main/my-phone-adblock.sgmodule
 #!category = 去广告
 #!date = 2026-10-17
-#!version = 1.0.4
+#!version = 1.0.5
 
 # ==========================================================================
-# 我的手机去广告 v1.0.4  ·  构建日期 2026-10-17
+# 我的手机去广告 v1.0.5  ·  构建日期 2026-10-17
 # ==========================================================================
-# 层一 域名级（无需 HTTPS 解密） : 42 条生效 + 8 条可选（注释掉）
-# 层二 路径级（需要 HTTPS 解密） : 2 条生效（高德开屏、阿里弹层）+ 2 条可选（淘宝开屏）
-# 数据源                        : Shadowrocket 日志 2026-10-15~17，57,814 条记录 / 794 个域名 / 43.6 小时
+# 层一 域名级（无需 HTTPS 解密） : 41 条生效 + 9 条可选（注释掉）
+# 层二 路径级（需要 HTTPS 解密） : 0 条生效 —— 候选路径未证实，全部列在文末「未证实 · 默认关闭」
+# 数据源                        : Shadowrocket 日志 2026-10-15~17，57,814 条记录 / 794 个域名 / 19.6 小时
 #
 # 调试提示：版本号同时写在 #!name 和这里。在 Shadowrocket 的模块列表里看到的
 # 名字就带版本；日志里命中的规则文本则是 DOMAIN-SUFFIX / 正则原文。
@@ -22,7 +22,7 @@
 
 # 本模块怎么来的 / How this module was made
 # ---------------------------------------------------------------------------
-# 数据源：Shadowrocket 日志 2026-10-15/16，13,921 条记录 / 794 个域名 / 14.0 小时。没有整段照搬任何社区规则库——社区库是给所有人用的，
+# 数据源：Shadowrocket 日志 2026-10-15~17，57,814 条记录 / 794 个域名 / 19.6 小时。没有整段照搬任何社区规则库——社区库是给所有人用的，
 # 因而也一定会拦住你手机上某个正在用的功能。这里只保留「抓包里真实出现过，且供应商身份明确是广告」的域名。
 #
 # 社区库只用作第二意见：ad-tier 的每个域名都同时满足「本机抓包见过」和「至少一家权威广告库收录」。
@@ -32,9 +32,13 @@
 #
 # 本模块的域名级规则只含第三方广告厂商域名。日志里的第一方埋点域名（各家 App 自己的 stat/log 域）刻意不收录：那些域名本身就等于一份"装了哪些 App"的清单，而这个仓库是公开的。
 #
-# v1.0.4 起新增层二（路径级 rewrite）。原因：网易云、高德这类 App 的开屏广告挂在第一方域名下，
-# 域名级规则天然看不见。层二只对下面 4 个已确认的域做 MITM，不做全域解密；每条的抓包次数与来源都写在规则上方。
-# 仍未覆盖的：京东开屏（社区做法是用 http-response 脚本剥离响应体，不是域名/路径能解决的）、淘宝开屏（见层二里的可选规则）。
+# v1.0.5 的判定标准：**只有绝对确定的才生效**。
+# 域名级新增 5 条，每一条都拿到了第一手证据（服务器自报身份 / 302 跳转 / DNS 链路 / 官方文档），
+# 证据写在规则上方。拿不到第一手证据的一律不生效 —— 包括：
+#   · adashx.m.taobao.com：证据够强但本机连不上，降 B 档；
+#   · 网易云 / 高德 / poplayer 的开屏路径：只能证明端点存在，无法证明"只服务广告"，全部列在文末「未证实 · 默认关闭」；
+#   · 京东开屏：社区做法是用 http-response 脚本剥离响应体，域名/路径规则解决不了。
+# 本模块仍然不需要 MITM，装上即用。
 
 [Rule]
 
@@ -227,12 +231,6 @@ DOMAIN-SUFFIX, iadmusicmat.music.126.net, REJECT
 # 同上，某音乐 App 广告素材 CDN。
 DOMAIN-SUFFIX, iadmat.nosdn.127.net, REJECT
 
-# 淘宝广告统计 adashx
-# 本机 App 类别：某电商 App | 抓包命中 13 次（DIRECT 6 / PROXY 7） | 权威广告库：多个社区「淘宝去广告」模块
-# adashx = ad + ashx，淘宝/天猫广告曝光与点击统计端点。社区「淘宝去广告」模块均以 DOMAIN 精确拦截本域。
-# 注意：同族的 amdc.m.taobao.com（投放调度）不能拦 —— anti-AD issue #778 记录，拦了会导致阿里系 App 异常。
-DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
-
 # 淘宝广告统计 h-adashx（无线端）
 # 本机 App 类别：某电商 App | 抓包命中 10 次（DIRECT 7 / PROXY 3） | 权威广告库：多个社区「淘宝去广告」模块
 # ut = Universal Tracking。与 adashx 同一套广告埋点体系，社区模块同样精确拦截。
@@ -311,47 +309,54 @@ DOMAIN-SUFFIX, googleadservices.com, REJECT
 # ys7.com 是萤石云。adx 子域是广告交易所，1 次。
 # DOMAIN-SUFFIX, adx.ys7.com, REJECT
 
+# 淘宝广告统计 adashx —— 证据够强，但本机连不上，降到 B 档
+# 抓包命中 13 次（DIRECT 6 / PROXY 7）
+# 证据：DNS 链路 adashx.m.taobao.com → gds.alibabadns.com → kunlunhuf.com（阿里）；
+#       同族的 h-adashx.ut.taobao.com 响应头自报 Server: aserver/2.0.0 Adashx/2.0.6.0914-MEM；
+#       多个社区「淘宝去广告」模块以 DOMAIN 精确拦截本域。
+# 为什么没进 A 档：本机用真实 IP 直连仍被 TLS 重置，没能亲眼看到它的响应内容。
+# 差一票，按「只有绝对确定才生效」放 B 档。
+# 注意：同族的 amdc.m.taobao.com（投放调度）不能拦 —— anti-AD issue #778 记录，拦了会导致阿里系 App 异常。
+# DOMAIN-SUFFIX, adashx.m.taobao.com, REJECT
+
 # ==========================================================================
-# 层二 · 路径级（需要 HTTPS 解密 / MITM）
+# 未证实 · 默认关闭（研究记录，不生效）
 # ==========================================================================
-# 纯广告域用上面的域名级规则就够。但下面这几个 App 的开屏广告挂在第一方域名下，
-# 只能拦路径 —— 拦整个域名会把 App 主功能一起搞挂。
+# 下面这些是本次抓到的高嫌疑路径，但**没能用第一手证据证实"它只服务广告"**，
+# 按「只有绝对确定的才生效」的原则，全部保持注释，不进 [URL Rewrite]。
 #
-# 为什么今天才加这一段：域名级规则天然看不见“同一个域名下的某条广告接口”。
-# 网易云的 link/position/show/resource 在日志里跑了 352 次，域名是 interface3.music.163.com，
-# 域名级永远拦不到；高德的 startup/configuration/v3 同理。
+# 撤下的原因（逐条实测记录）：
 #
-# 语法：<正则> <动作>。REJECT-DICT 返回空 JSON（客户端能解析但拿不到广告），
-# REJECT-200 返回空 200。两者都比直接 REJECT 温和，减少 App 报错重试。
-# 正则里 / 不需要转义，但 . 需要；[a-z]*api 同时覆盖 eapi / xeapi / api 三种前缀。
-
-[URL Rewrite]
-
-# 网易云音乐 · 资源位广告（开屏 / 我的页顶栏）
-# 抓包：eapi/link/position/show/resource 352 次（DIRECT 316 / PROXY 36），本模块最大漏网点。
-# 社区「网易云音乐去广告」模块把同一路径标注为「我的 MyPageBar ad」。
-# 注意：原模块已有规则只覆盖 position/show/strategy，没覆盖 resource —— 这里补齐两者。
-# 风险：该接口可能同时返回非广告的资源位数据，REJECT-DICT 会让这些位置变空。若「我的」页出现异常，注释掉本行即可。
-^https?://(ipv4|interface\d?)\.music\.163\.com\/[a-z]*api\/link\/position\/show\/(resource|strategy) REJECT-DICT
-
-# 高德地图 · 开屏 DSP 配置
-# 抓包：startup/configuration/v3 1 次 DIRECT；startup/init 已被别的模块拦。
-# DSP = 需求方平台，startup 下的接口只负责启动时的广告初始化与配置下发。用 /startup/ 前缀一次覆盖两者。
-^https?://m5\.amap\.com\/ws\/shield\/dsp\/app\/startup\/ REJECT-200
-
-# 阿里 · 开屏弹层模板
-# 抓包：poplayer.template.alibaba.com 2 次（DIRECT 1 / PROXY 1）。
-# poplayer 是阿里系 App 的弹层/开屏广告模板系统；社区规则按 /\w+\.json 精确拦。
-^https?://poplayer\.template\.alibaba\.com\/ REJECT-200
-
-# 淘宝 / 闲鱼 · 开屏广告（可选，默认关闭）
-# 社区 Shadowrocket 模块里公开的开屏规则。默认注释，因为给 acs.m.taobao.com 开 MITM
-# 有概率与淘宝的证书校验冲突；真要用，把下面两行解除注释，并把 acs.m.taobao.com 加进 [MITM]。
+# 1) 网易云 interface3.music.163.com/[e|xe]api/link/position/show/(resource|strategy)
+#    抓包 352 次，社区模块标注为「我的 MyPageBar ad」。但 POST 实测只能拿到
+#    HTTP 200 + 空 body（eapi 需要 App 端加密参数），无法看到真实返回内容。
+#    更关键：冷启动 4 秒内它被调用约 20 次（每个资源位一次），REJECT-DICT 会让
+#    所有资源位一起变空，不只是开屏 —— 存在实际误杀风险，故不生效。
+#
+# 2) 高德 m5.amap.com/ws/shield/dsp/app/startup/(init|configuration/v3)
+#    dsp = Demand-Side Platform，路径语义明确指向广告。但 POST 只返回
+#    {"result":false,"code":3,"message":"Params error"}，与普通 updatable/init 返回完全相同，
+#    无法据此证明它只服务广告。
+#
+# 3) poplayer.template.alibaba.com/\w+\.json
+#    社区规则按此形态拦开屏模板。实测该域是 OSS 对象桶（路径不存在返回 NoSuchKey），
+#    只能证明它是模板存储，不能证明桶里只有广告模板。
+#
+# 4) 淘宝/闲鱼开屏（acs.m.taobao.com、acs.m.goofish.com）
+#    社区公开规则，但需要给淘宝主 API 域开 MITM，与证书校验冲突的概率不可忽略。
+#
+# 如果以后要启用，需要先做到至少一项：
+#   - 解出 App 的加密参数，拿到真实响应内容并确认只含广告字段
+#   - 或改用 [Script] 在响应体里精确剔除广告字段（社区的做法），而不是整条 reject
+#
+# 参考写法（启用前请补齐证据）：
+# ^https?://(ipv4|interface\d?)\.music\.163\.com\/[a-z]*api\/link\/position\/show\/(resource|strategy) REJECT-DICT
+# ^https?://m5\.amap\.com\/ws\/shield\/dsp\/app\/startup\/ REJECT-200
+# ^https?://poplayer\.template\.alibaba\.com\/\w+\.json REJECT-200
 # ^https?://acs\.m\.taobao\.com\/gw\/mtop\.(taobao\.wireless\.home\.(splash|newface)\.awesome\.get|alibaba\.advertisementservice\.getadv) REJECT-200
 # ^https?://acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlecommerce\.splash REJECT-200
-
-[MITM]
-# %APPEND% 表示追加到其它模块已有的 hostname 列表，不会覆盖。
-# 只列上面确实需要解密的域，不做全域 MITM。
-hostname = %APPEND% interface3.music.163.com, ipv4.music.163.com, m5.amap.com, poplayer.template.alibaba.com
+#
+# 启用任何一条时，同时取消下面 [MITM] 的注释，并把对应域名加进 hostname：
+# [MITM]
+# hostname = %APPEND% interface3.music.163.com, m5.amap.com, poplayer.template.alibaba.com
 
